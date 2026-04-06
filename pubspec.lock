@@ -89,6 +89,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  dart_mymc:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "728dfa14d7ab77059729171a58af10d6bf7bfbb0"
+      url: "https://github.com/BAD-AL/dart_mymc.git"
+    source: git
+    version: "1.0.0"
   file:
     dependency: transitive
     description:
@@ -385,6 +394,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
+  xbox_memory_unit_tool:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "5450ecb19a7e7c9f377448dd2ee5f56de09cb037"
+      url: "https://github.com/BAD-AL/xbox_memory_unit_tool.git"
+    source: git
+    version: "1.0.0"
   yaml:
     dependency: transitive
     description:

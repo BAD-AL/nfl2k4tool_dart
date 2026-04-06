@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:archive/archive.dart';
+import 'package:dart_mymc/dart_mymc.dart';
+import 'package:xbox_memory_unit_tool/xbox_memory_unit_tool.dart';
 import 'base_roster.dart';
 import 'constants.dart';
 import 'player_record.dart';
@@ -9,6 +11,9 @@ import 'schedule.dart';
 
 /// The game title ID embedded in Xbox ZIP saves.
 const String kXboxTitleId = '53450022';
+
+/// The PS2 product code prefix for NFL 2K4 saves.
+const String kPs2TitleId = 'BASLUS-20727';
 
 /// Loads and manipulates an NFL 2K4 Xbox gamesave (roster or franchise).
 class NFL2K4Gamesave {
@@ -23,6 +28,14 @@ class NFL2K4Gamesave {
   /// The ZIP entry path for savegame.dat, e.g.
   /// "UDATA/53450022/AABBCCDD1234/savegame.dat".
   String? _zipEntryPath;
+
+  /// Non-null when loaded from a PS2 PSU or MAX container.
+  /// The PS2 directory name, e.g. 'BASLUS-20727BaseRos'.
+  String? _ps2DirName;
+
+  /// Side files from a PS2 PSU/MAX save (icon.sys, VIEW.ICO, etc.)
+  /// preserved so round-trip saves retain the original icon data.
+  Map<String, Uint8List>? _ps2SideFiles;
 
   NFL2K4Gamesave._(this._data, this._base);
 
@@ -126,6 +139,65 @@ class NFL2K4Gamesave {
   factory NFL2K4Gamesave.fromBaseRoster() =>
       NFL2K4Gamesave.fromBytes(kBase_roster);
 
+  /// Opens a PS2 PSU or MAX save file.
+  ///
+  /// Extracts the main game-data file (the entry whose name starts with
+  /// [kPs2TitleId]) and preserves all other entries (icon.sys, VIEW.ICO, …)
+  /// so they survive a round-trip via [toPs2PsuBytes] / [toPs2MaxBytes].
+  factory NFL2K4Gamesave.fromPs2Save(List<int> bytes) {
+    final raw = Uint8List.fromList(bytes);
+    final ps2Save = Ps2Save.fromBytes(raw);
+
+    Uint8List? mainData;
+    final sideFiles = <String, Uint8List>{};
+    for (final file in ps2Save.files) {
+      if (file.name.startsWith(kPs2TitleId)) {
+        mainData = file.toBytes();
+      } else {
+        sideFiles[file.name] = file.toBytes();
+      }
+    }
+
+    if (mainData == null) {
+      throw FormatException(
+          'PS2 save does not contain a $kPs2TitleId data file.');
+    }
+
+    final save = NFL2K4Gamesave._(mainData, _detectBase(mainData));
+    save._ps2DirName = ps2Save.dirName;
+    if (sideFiles.isNotEmpty) save._ps2SideFiles = sideFiles;
+    return save;
+  }
+
+  /// Finds and opens the first NFL 2K4 save on a PS2 memory card image.
+  factory NFL2K4Gamesave.fromPs2Card(List<int> cardImage) {
+    final raw = Uint8List.fromList(cardImage);
+    final card = Ps2Card.openMemory(raw);
+    final saves = card.listSaves();
+    final info = saves.firstWhere(
+      (s) => s.dirName.startsWith(kPs2TitleId),
+      orElse: () => throw FormatException(
+          'No NFL 2K4 save ($kPs2TitleId*) found on PS2 memory card.'),
+    );
+    final psuBytes = card.exportSave(info.dirName);
+    return NFL2K4Gamesave.fromPs2Save(psuBytes);
+  }
+
+  /// Finds and opens the first NFL 2K4 save on an Xbox Memory Unit image.
+  factory NFL2K4Gamesave.fromXboxMU(List<int> muImage) {
+    final raw = Uint8List.fromList(muImage);
+    final mu = XboxMemoryUnit.fromBytes(raw);
+    final matchingTitles =
+        mu.titles.where((t) => t.id == kXboxTitleId).toList();
+    if (matchingTitles.isEmpty || matchingTitles.first.saves.isEmpty) {
+      throw FormatException(
+          'No NFL 2K4 save (title $kXboxTitleId) found on Xbox Memory Unit.');
+    }
+    final zipBytes =
+        Uint8List.fromList(matchingTitles.first.saves.first.exportZip());
+    return NFL2K4Gamesave._fromZipBytes(zipBytes);
+  }
+
   /// True if this save was loaded from a ZIP file.
   bool get isZip => _zipArchive != null;
 
@@ -133,7 +205,11 @@ class NFL2K4Gamesave {
   int get base => _base;
 
   /// True if this is a franchise save (base = 0x1E0).
-  bool get isFranchise => _base != kBase;
+  /// True if this is a franchise save.
+  ///
+  /// Roster saves have ROST at offset 0x18 (Xbox) or 0x00 (PS2).
+  /// Franchise saves have it at 0x1E0 (Xbox) or 0x1CC (PS2).
+  bool get isFranchise => _base != kBase && _base != 0;
 
   // ---------------------------------------------------------------------------
   // Schedule (franchise only)
@@ -1401,6 +1477,82 @@ class NFL2K4Gamesave {
   /// Returns the current byte buffer (modified in place by setters).
   Uint8List get bytes => _data;
 
+  /// True when this save was loaded from a PS2 PSU or MAX container.
+  bool get isPs2Container => _ps2DirName != null;
+
+  // ---------------------------------------------------------------------------
+  // PS2 container export
+  // ---------------------------------------------------------------------------
+
+  /// Returns this save packaged as a PS2 PSU file.
+  ///
+  /// Side files (icon.sys, VIEW.ICO, …) are included when they were preserved
+  /// from the original PSU/MAX on load.
+  Uint8List toPs2PsuBytes() => _toPs2Bytes(Ps2SaveFormat.psu);
+
+  /// Returns this save packaged as a PS2 MAX (Action Replay Max) file.
+  Uint8List toPs2MaxBytes() => _toPs2Bytes(Ps2SaveFormat.max);
+
+  Uint8List _toPs2Bytes(Ps2SaveFormat format) {
+    final dirName = _ps2DirName ?? _defaultPs2DirName;
+    final fileMap = <String, Uint8List>{dirName: Uint8List.fromList(_data)};
+    if (_ps2SideFiles != null) fileMap.addAll(_ps2SideFiles!);
+    return Ps2Save.fromFiles(dirName, fileMap).toBytes(format: format);
+  }
+
+  /// The default PS2 directory/file name when the save was not loaded from
+  /// a PS2 container (franchise vs. roster is inferred from [isFranchise]).
+  String get _defaultPs2DirName =>
+      isFranchise ? '${kPs2TitleId}BaseFran' : '${kPs2TitleId}BaseRos';
+
+  /// Injects this save into a freshly formatted 8 MB PS2 memory card image.
+  Uint8List toPs2CardBytes() {
+    final card = Ps2Card.format();
+    card.importSave(toPs2PsuBytes());
+    return card.toBytes();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Xbox Memory Unit export
+  // ---------------------------------------------------------------------------
+
+  /// Injects this Xbox save into a freshly formatted Xbox Memory Unit image.
+  ///
+  /// Throws [StateError] if this is not an Xbox save ([isXbox] is false).
+  Uint8List toXboxMUBytes() {
+    if (!isXbox) {
+      throw StateError(
+          'Cannot create an Xbox Memory Unit from a non-Xbox save. '
+          'Use toPs2CardBytes() for PS2 saves.');
+    }
+    final mu = XboxMemoryUnit.format();
+    mu.importZip(_buildXboxZipBytes());
+    return mu.bytes;
+  }
+
+  /// Builds a well-formed Xbox ZIP from the current save data.
+  ///
+  /// Uses the directory ID from the original ZIP when available; falls back to
+  /// a fixed default so the result is always a valid FATX import.
+  Uint8List _buildXboxZipBytes() {
+    _resign();
+    final dirId = _zipEntryPath != null
+        ? _zipEntryPath!.split('/').elementAtOrNull(2) ?? 'A00000000001'
+        : 'A00000000001';
+    final subfolder = 'UDATA/$kXboxTitleId/$dirId';
+    final archive = Archive();
+    archive.addFile(
+        ArchiveFile('$subfolder/savegame.dat', _data.length, _data));
+    // Preserve all non-savegame entries from the original ZIP (e.g. metadata).
+    if (_zipArchive != null) {
+      for (final f in _zipArchive!) {
+        if (f.name != _zipEntryPath && f.isFile) {
+          archive.addFile(ArchiveFile(f.name, f.size, f.content as List<int>));
+        }
+      }
+    }
+    return Uint8List.fromList(ZipEncoder().encode(archive)!);
+  }
 
   /// Re-signs the save using HMAC-SHA1 with the 2K4 Xbox key.
   ///

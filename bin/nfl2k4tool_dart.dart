@@ -5,12 +5,35 @@ import 'package:nfl2k4tool_dart/nfl2k4tool_dart.dart';
 // File I/O helpers (dart:io layer — not part of the library)
 // ---------------------------------------------------------------------------
 
-NFL2K4Gamesave _loadFile(String path) =>
-    NFL2K4Gamesave.fromBytes(File(path).readAsBytesSync());
+NFL2K4Gamesave _loadFile(String path,
+    {bool isPs2Card = false, bool isXboxMU = false}) {
+  final bytes = File(path).readAsBytesSync();
+  if (isPs2Card) return NFL2K4Gamesave.fromPs2Card(bytes);
+  if (isXboxMU) return NFL2K4Gamesave.fromXboxMU(bytes);
+  final ext = path.toLowerCase();
+  if (ext.endsWith('.psu') || ext.endsWith('.max')) {
+    return NFL2K4Gamesave.fromPs2Save(bytes);
+  }
+  if (ext.endsWith('.ps2')) {
+    return NFL2K4Gamesave.fromPs2Card(bytes);
+  }
+  if (ext.endsWith('.img') || ext.endsWith('.bin')) {
+    return NFL2K4Gamesave.fromXboxMU(bytes);
+  }
+  return NFL2K4Gamesave.fromBytes(bytes);
+}
 
 void _saveFile(NFL2K4Gamesave save, String path) {
-  final isZipOut = path.toLowerCase().endsWith('.zip');
-  if (isZipOut || (save.isZip && !path.toLowerCase().endsWith('.dat'))) {
+  final ext = path.toLowerCase();
+  if (ext.endsWith('.psu')) {
+    File(path).writeAsBytesSync(save.toPs2PsuBytes());
+  } else if (ext.endsWith('.max')) {
+    File(path).writeAsBytesSync(save.toPs2MaxBytes());
+  } else if (ext.endsWith('.ps2')) {
+    File(path).writeAsBytesSync(save.toPs2CardBytes());
+  } else if (ext.endsWith('.img') || ext.endsWith('.bin')) {
+    File(path).writeAsBytesSync(save.toXboxMUBytes());
+  } else if (ext.endsWith('.zip')) {
     File(path).writeAsBytesSync(save.toZipBytes());
   } else {
     File(path).writeAsBytesSync(save.toBytes());
@@ -38,7 +61,7 @@ void main(List<String> args) {
 String runMain(List<String> args) {
 
   String? saveFileName;
-  String? outputFileName;  // should only be one of the following [.dat, .zip] // PS2 support coming later.
+  String? outputFileName;
   String? dataToApplyFile;
   bool showAbilities = false;
   bool showAppearance = false;
@@ -55,6 +78,8 @@ String runMain(List<String> args) {
   bool fixSkin = false;
   bool vrabelFix = false;
   bool showTime = false;
+  bool isPs2Card = false;
+  bool isXboxMU = false;
   String? teamFilter;
   String? keyArg;
 
@@ -90,6 +115,10 @@ String runMain(List<String> args) {
       fixSkin = true;
     } else if (a == '-vrabelfix') {
       vrabelFix = true;
+    } else if (a == '-ps2card') {
+      isPs2Card = true;
+    } else if (a == '-xboxmu') {
+      isXboxMU = true;
     } else if (a == '-time') {
       showTime = true;
     } else if (a.startsWith('-team=')) {
@@ -158,7 +187,7 @@ String runMain(List<String> args) {
   try {
     final save = usingBaseRoster
         ? NFL2K4Gamesave.fromBaseRoster()
-        : _loadFile(saveFileName!);
+        : _loadFile(saveFileName!, isPs2Card: isPs2Card, isXboxMU: isXboxMU);
 
     if (seqDump) {
       // Sequential dump: walk player array in memory order, skip blank records.
@@ -281,12 +310,22 @@ String runMain(List<String> args) {
       return "";
     }
 
+    // Format conversion: -out:<file> with no data file just saves the loaded
+    // save in whatever format the output extension implies.
+    if (outputFileName != null) {
+      _saveFile(save, outputFileName);
+      print('Saved to $outputFileName');
+    }
+
     return sb.toString();
   } on FileSystemException catch (e) {
     stderr.writeln('File error: $e');
     return "1";
   } on FormatException catch (e) {
     stderr.writeln('Format error: $e');
+    return "1";
+  } on StateError catch (e) {
+    stderr.writeln('Error: $e');
     return "1";
   }
 }
@@ -381,7 +420,25 @@ void _printUsage() {
 NFL 2K4 Gamesave Tool
 
 Usage:
-  dart run bin/nfl2k4tool_dart.dart <savefile> [flags] [-out:<outfile>] [datafile]
+  nfl2k4tool <savefile> [flags] [-out:<outfile>] [datafile]
+
+Supported input formats (auto-detected by extension; flags override):
+  .dat         Raw Xbox save (VSAV magic) or raw PS2 save (ROST magic)
+  .zip         Xbox save ZIP bundle
+  .psu         PS2 PSU save container (uncompressed)
+  .max         PS2 MAX save container (Action Replay Max, compressed)
+  .ps2         PS2 memory card image (finds first NFL 2K4 save)
+  .img/.bin    Xbox Memory Unit image (finds first NFL 2K4 save)
+  -ps2card     Force-treat input as a PS2 memory card image
+  -xboxmu      Force-treat input as an Xbox Memory Unit image
+
+Supported output formats (inferred from -out extension):
+  .dat         Raw save bytes
+  .zip         Xbox save ZIP bundle
+  .psu         PS2 PSU save container
+  .max         PS2 MAX save container
+  .ps2         PS2 memory card image (freshly formatted, save injected)
+  .img/.bin    Xbox Memory Unit image (freshly formatted, save injected)
 
 Flags:
   -ab          Output abilities + scalar attributes
@@ -413,19 +470,22 @@ Flags:
                Required when applying a data file or schedule.
 
 Examples:
-  # Export all player data to a text file
+  # Export all player data from an Xbox save
   dart run bin/nfl2k4tool_dart.dart roster.dat -ab -app -out:players.txt
+
+  # Load a PS2 PSU save and export abilities
+  dart run bin/nfl2k4tool_dart.dart roster.psu -ab -out:abilities.txt
+
+  # Apply edits and save back as PSU
+  dart run bin/nfl2k4tool_dart.dart roster.psu players_edited.txt -out:roster_new.psu
+
+  # Extract from a PS2 memory card image and save as PSU
+  dart run bin/nfl2k4tool_dart.dart memcard.ps2 -ps2card -ab -out:roster.psu
+
+  # Extract from an Xbox Memory Unit and save as ZIP
+  dart run bin/nfl2k4tool_dart.dart mu.bin -xboxmu -ab -out:roster.zip
 
   # Export just the 49ers
   dart run bin/nfl2k4tool_dart.dart roster.dat -ab -team=49ers
-
-  # Export specific fields for all players
-  dart run bin/nfl2k4tool_dart.dart roster.dat -key=Position,JerseyNumber,fname,lname,Speed,Agility
-
-  # Apply a modified text file back to the save
-  dart run bin/nfl2k4tool_dart.dart roster.dat -ab -app players_edited.txt -out:roster_new.dat
-
-  # Export abilities including free agents
-  dart run bin/nfl2k4tool_dart.dart roster.dat -ab -fa -out:abilities.txt
 ''');
 }
