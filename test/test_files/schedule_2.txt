@@ -1,0 +1,291 @@
+#Schedule
+
+WEEK 1  [16 games]
+chiefs at patriots
+jets at bills
+falcons at bears
+ravens at bengals
+steelers at browns
+cardinals at lions
+jaguars at texans
+buccaneers at dolphins
+raiders at titans
+eagles at redskins
+colts at rams
+seahawks at packers
+panthers at 49ers
+giants at cowboys
+saints at vikings
+chargers at broncos
+
+WEEK 2  [16 games]
+texans at bengals
+browns at ravens
+bills at panthers
+cardinals at colts
+titans at jaguars
+eagles at chiefs
+patriots at saints
+vikings at steelers
+bears at buccaneers
+dolphins at chargers
+jets at raiders
+cowboys at broncos
+redskins at rams
+49ers at seahawks
+packers at falcons
+lions at giants
+
+WEEK 3  [14 games]
+rams at 49ers
+ravens at jaguars
+broncos at bills
+saints at panthers
+steelers at bears
+falcons at lions
+browns at colts
+buccaneers at vikings
+texans at patriots
+dolphins at jets
+giants at eagles
+seahawks at titans
+bengals at packers
+chiefs at chargers
+
+WEEK 4  [14 games]
+raiders at redskins
+cowboys at cardinals
+bears at packers
+saints at dolphins
+bills at falcons
+steelers at ravens
+bengals at browns
+rams at cowboys
+titans at texans
+lions at vikings
+panthers at patriots
+jaguars at jets
+49ers at cardinals
+eagles at chargers
+
+WEEK 5  [14 games]
+giants at buccaneers
+raiders at broncos
+colts at seahawks
+redskins at chiefs
+patriots at buccaneers
+bills at bengals
+jets at browns
+panthers at lions
+49ers at colts
+titans at dolphins
+chargers at giants
+cardinals at eagles
+jaguars at steelers
+seahawks at rams
+
+WEEK 6  [14 games]
+ravens at raiders
+packers at cowboys
+chiefs at texans
+vikings at bears
+eagles at panthers
+dolphins at falcons
+bears at ravens
+browns at texans
+packers at vikings
+lions at saints
+patriots at jets
+49ers at redskins
+buccaneers at cardinals
+rams at jaguars
+
+WEEK 7  [14 games]
+steelers at chiefs
+chargers at raiders
+giants at broncos
+colts at titans
+chiefs at raiders
+buccaneers at bills
+panthers at bears
+titans at browns
+saints at packers
+jaguars at colts
+cardinals at rams
+jets at dolphins
+ravens at vikings
+bengals at steelers
+
+WEEK 8  [14 games]
+cowboys at 49ers
+broncos at chargers
+seahawks at giants
+falcons at patriots
+redskins at eagles
+dolphins at ravens
+vikings at browns
+raiders at bills
+colts at bengals
+chargers at patriots
+bears at saints
+falcons at jets
+49ers at eagles
+panthers at buccaneers
+
+WEEK 9  [14 games]
+texans at seahawks
+cowboys at redskins
+steelers at lions
+broncos at chiefs
+bills at jets
+falcons at panthers
+colts at texans
+bengals at jaguars
+buccaneers at saints
+rams at giants
+broncos at eagles
+ravens at titans
+cardinals at 49ers
+redskins at seahawks
+
+WEEK 10  [14 games]
+chiefs at cowboys
+raiders at dolphins
+lions at packers
+seahawks at cardinals
+saints at bills
+packers at bears
+browns at lions
+steelers at colts
+chargers at jaguars
+jets at buccaneers
+bengals at titans
+vikings at redskins
+texans at rams
+cowboys at falcons
+
+WEEK 11  [16 games]
+giants at 49ers
+patriots at broncos
+dolphins at panthers
+titans at steelers
+lions at bears
+jaguars at browns
+ravens at packers
+cardinals at texans
+rams at vikings
+redskins at saints
+chiefs at giants
+bills at chargers
+bengals at broncos
+patriots at raiders
+eagles at cowboys
+falcons at seahawks
+
+WEEK 12  [16 games]
+vikings at lions
+chargers at cowboys
+giants at redskins
+buccaneers at falcons
+browns at bengals
+titans at colts
+bills at chiefs
+dolphins at patriots
+panthers at jets
+bears at eagles
+saints at rams
+seahawks at 49ers
+jaguars at cardinals
+broncos at raiders
+packers at steelers
+texans at ravens
+
+WEEK 13  [16 games]
+redskins at cowboys
+vikings at falcons
+lions at ravens
+patriots at bills
+49ers at bears
+buccaneers at packers
+colts at jaguars
+broncos at dolphins
+panthers at saints
+chiefs at jets
+texans at titans
+browns at chargers
+rams at cardinals
+giants at raiders
+eagles at seahawks
+steelers at bengals
+
+WEEK 14  [16 games]
+saints at falcons
+colts at bills
+vikings at panthers
+bears at bengals
+packers at browns
+49ers at texans
+seahawks at jaguars
+raiders at chiefs
+lions at buccaneers
+titans at cardinals
+jets at broncos
+redskins at chargers
+eagles at rams
+cowboys at giants
+ravens at steelers
+patriots at dolphins
+
+WEEK 15  [16 games]
+broncos at colts
+bears at lions
+chargers at chiefs
+dolphins at bills
+packers at panthers
+ravens at browns
+texans at jaguars
+bengals at vikings
+jets at saints
+eagles at giants
+cardinals at redskins
+rams at seahawks
+patriots at steelers
+titans at 49ers
+cowboys at raiders
+falcons at buccaneers
+
+WEEK 16  [16 games]
+colts at ravens
+vikings at packers
+buccaneers at panthers
+browns at bears
+lions at bengals
+dolphins at chiefs
+bills at patriots
+falcons at saints
+chargers at jets
+rams at titans
+broncos at redskins
+jaguars at 49ers
+giants at cardinals
+seahawks at cowboys
+steelers at texans
+raiders at eagles
+
+WEEK 17  [16 games]
+panthers at falcons
+bengals at ravens
+packers at lions
+texans at colts
+bills at dolphins
+bears at vikings
+jets at patriots
+redskins at giants
+cowboys at eagles
+browns at steelers
+saints at buccaneers
+jaguars at titans
+chiefs at broncos
+raiders at chargers
+49ers at rams
+cardinals at seahawks

@@ -1,0 +1,290 @@
+
+Week
+chiefs	at	texans
+seahawks	at	falcons
+bills	at	jets
+raiders	at	panthers
+bears	at	lions
+ravens	at	browns
+jaguars	at	colts
+packers	at	vikings
+patriots	at	dolphins
+redskins	at	eagles
+chargers	at	bengals
+cardinals	at	49ers
+saints	at	buccaneers
+rams	at	cowboys
+steelers	at	giants
+titans	at	broncos
+
+Week
+browns	at	bengals
+cowboys	at	falcons
+bills	at	dolphins
+buccaneers	at	panthers
+bears	at	giants
+colts	at	vikings
+steelers	at	broncos
+packers	at	lions
+titans	at	jaguars
+49ers	at	jets
+rams	at	eagles
+cardinals	at	redskins
+ravens	at	texans
+chiefs	at	chargers
+seahawks	at	patriots
+raiders	at	saints
+
+Week
+dolphins	at	jaguars
+bears	at	falcons
+bills	at	rams
+eagles	at	bengals
+browns	at	redskins
+steelers	at	texans
+titans	at	vikings
+patriots	at	raiders
+49ers	at	giants
+panthers	at	chargers
+colts	at	jets
+lions	at	cardinals
+seahawks	at	cowboys
+buccaneers	at	broncos
+packers	at	saints
+chiefs	at	ravens
+
+Week
+broncos	at	jets
+panthers	at	cardinals
+colts	at	bears
+bengals	at	jaguars
+browns	at	cowboys
+saints	at	lions
+vikings	at	texans
+seahawks	at	dolphins
+ravens	at	redskins
+buccaneers	at	chargers
+rams	at	giants
+bills	at	raiders
+eagles	at	49ers
+chiefs	at	patriots
+packers	at	falcons
+
+Week
+bears	at	buccaneers
+panthers	at	falcons
+ravens	at	bengals
+cardinals	at	jets
+texans	at	jaguars
+raiders	at	chiefs
+steelers	at	eagles
+rams	at	redskins
+dolphins	at	49ers
+browns	at	colts
+cowboys	at	giants
+seahawks	at	vikings
+saints	at	chargers
+titans	at	bills
+
+Week
+broncos	at	patriots
+lions	at	jaguars
+falcons	at	vikings
+bears	at	panthers
+colts	at	bengals
+steelers	at	browns
+titans	at	texans
+giants	at	redskins
+ravens	at	eagles
+dolphins	at	jets
+buccaneers	at	packers
+49ers	at	rams
+chiefs	at	bills
+cardinals	at	cowboys
+
+Week
+eagles	at	giants
+packers	at	texans
+steelers	at	titans
+lions	at	falcons
+bills	at	jets
+saints	at	panthers
+browns	at	bengals
+redskins	at	cowboys
+buccaneers	at	raiders
+chiefs	at	broncos
+49ers	at	patriots
+chargers	at	jaguars
+cardinals	at	seahawks
+rams	at	bears
+
+Week
+falcons	at	panthers
+colts	at	lions
+vikings	at	packers
+dolphins	at	rams
+steelers	at	ravens
+bills	at	patriots
+bengals	at	titans
+raiders	at	browns
+chiefs	at	jets
+broncos	at	chargers
+seahawks	at	49ers
+saints	at	bears
+eagles	at	cowboys
+buccaneers	at	giants
+
+Week
+packers	at	49ers
+ravens	at	colts
+vikings	at	lions
+texans	at	jaguars
+falcons	at	broncos
+bills	at	seahawks
+chiefs	at	panthers
+titans	at	bears
+giants	at	redskins
+raiders	at	chargers
+dolphins	at	cardinals
+steelers	at	cowboys
+saints	at	buccaneers
+patriots	at	jets
+
+Week
+colts	at	titans
+browns	at	texans
+lions	at	redskins
+packers	at	jaguars
+buccaneers	at	panthers
+giants	at	eagles
+raiders	at	broncos
+dolphins	at	chargers
+cardinals	at	bills
+steelers	at	bengals
+saints	at	49ers
+rams	at	seahawks
+patriots	at	ravens
+vikings	at	bears
+
+Week
+seahawks	at	cardinals
+saints	at	falcons
+redskins	at	bengals
+browns	at	eagles
+texans	at	patriots
+steelers	at	jaguars
+titans	at	ravens
+panthers	at	lions
+broncos	at	dolphins
+chargers	at	jets
+colts	at	packers
+cowboys	at	vikings
+chiefs	at	raiders
+rams	at	buccaneers
+
+Week
+texans	at	lions
+redskins	at	cowboys
+falcons	at	raiders
+bills	at	chargers
+giants	at	bengals
+browns	at	jaguars
+titans	at	colts
+patriots	at	cardinals
+dolphins	at	jets
+vikings	at	panthers
+saints	at	broncos
+49ers	at	rams
+chiefs	at	buccaneers
+packers	at	bears
+seahawks	at	eagles
+steelers	at	ravens
+
+Week
+saints	at	falcons
+lions	at	bears
+dolphins	at	bengals
+browns	at	titans
+colts	at	texans
+vikings	at	jaguars
+raiders	at	jets
+rams	at	cardinals
+giants	at	seahawks
+packers	at	eagles
+patriots	at	chargers
+chiefs	at	broncos
+redskins	at	steelers
+bills	at	49ers
+ravens	at	cowboys
+
+Week
+rams	at	patriots
+broncos	at	panthers
+bears	at	texans
+cowboys	at	bengals
+cardinals	at	giants
+titans	at	jaguars
+chiefs	at	dolphins
+buccaneers	at	vikings
+colts	at	raiders
+seahawks	at	jets
+chargers	at	falcons
+packers	at	lions
+eagles	at	saints
+redskins	at	49ers
+bills	at	steelers
+ravens	at	browns
+
+Week
+chargers	at	raiders
+bills	at	broncos
+packers	at	panthers
+buccaneers	at	falcons
+bears	at	vikings
+colts	at	texans
+cowboys	at	49ers
+titans	at	lions
+ravens	at	jaguars
+dolphins	at	patriots
+seahawks	at	redskins
+cardinals	at	eagles
+jets	at	rams
+chiefs	at	saints
+browns	at	giants
+bengals	at	steelers
+
+Week
+saints	at	vikings
+buccaneers	at	lions
+49ers	at	cardinals
+dolphins	at	raiders
+chiefs	at	falcons
+bears	at	jaguars
+bengals	at	texans
+jets	at	browns
+steelers	at	colts
+ravens	at	giants
+panthers	at	redskins
+chargers	at	broncos
+cowboys	at	eagles
+seahawks	at	rams
+packers	at	titans
+bills	at	patriots
+
+Week
+buccaneers	at	falcons
+bills	at	dolphins
+ravens	at	bengals
+browns	at	steelers
+giants	at	cowboys
+vikings	at	lions
+patriots	at	jets
+saints	at	panthers
+packers	at	bears
+colts	at	jaguars
+rams	at	cardinals
+raiders	at	broncos
+titans	at	texans
+chargers	at	chiefs
+seahawks	at	49ers
+redskins	at	eagles
