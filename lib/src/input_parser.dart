@@ -68,6 +68,7 @@ class InputParser {
     List<String>? coachDataFields;      // active coach data key fields
     bool autoUpdateDepthChart = false;  // set by AutoUpdateDepthChart directive
     bool autoFixSkin = false;           // set by AutoFixSkinFromPhoto directive
+    bool vrabelFix = false;
 
     for (final rawLine in text.split(RegExp(r'[\r\n]+'))) {
       // Strip trailing comma and whitespace.
@@ -112,6 +113,12 @@ class InputParser {
       // ── AutoFixSkinFromPhoto directive ────────────────────────────────────
       if (line.trim().toLowerCase() == 'autofixskinfromphoto') {
         autoFixSkin = true;
+        continue;
+      }
+
+      //vrabelFix
+      if (line.trim().toLowerCase() == 'vrabelfix') {
+        vrabelFix = true;
         continue;
       }
 
@@ -341,6 +348,10 @@ class InputParser {
     if (autoUpdateDepthChart) {
       _save.sortAllTeamsPlayersByPosition();
       _save.fixKrPrWithCbs();
+    }
+
+    if(vrabelFix){
+      _save.vrabelFix();
     }
 
     return ApplyResult(updated: updated, skipped: skipped, errors: errors);
