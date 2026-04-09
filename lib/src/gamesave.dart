@@ -5,6 +5,7 @@ import 'package:dart_mymc/dart_mymc.dart';
 import 'package:xbox_memory_unit_tool/xbox_memory_unit_tool.dart';
 import 'base_roster.dart';
 import 'constants.dart';
+import 'data_map.dart';
 import 'player_record.dart';
 import 'roster_key.dart';
 import 'schedule.dart';
@@ -1025,6 +1026,61 @@ class NFL2K4Gamesave {
           // skip if the stored value is somehow out of range
         }
       }
+    }
+    return updated;
+  }
+
+  /// Updates every player's PBP field using the embedded ENFNameIndex lookup.
+  ///
+  /// Lookup order: 'LastName, FirstName' → 'LastName' → jersey number ('#NN').
+  /// Players with an empty name are skipped.  Returns the number of players updated.
+  int autoUpdatePBP() {
+    int updated = 0;
+    for (int slot = 0; slot < kMaxPlayerSlot; slot++) {
+      final recFile = _base + kPlayerStartGd + slot * kPlayerStride;
+      if (recFile + 0x53 > _data.length) break;
+      final p = PlayerRecord(_data, recFile, _base);
+      if (p.firstName.isEmpty && p.lastName.isEmpty) continue;
+
+      final num = p.jerseyNumber;
+      final number = num < 10 ? '#0$num' : '#$num';
+      final key = '${p.lastName}, ${p.firstName}';
+
+      String val;
+      if (DataMap.PBPMap.containsKey(key))
+        val = DataMap.PBPMap[key]!;
+      else if (DataMap.PBPMap.containsKey(p.lastName))
+        val = DataMap.PBPMap[p.lastName]!;
+      else
+        val = DataMap.PBPMap[number] ?? '';
+
+      if (val.isNotEmpty) {
+        p.pbp = int.parse(val);
+        updated++;
+      }
+    }
+    return updated;
+  }
+
+  /// Updates every player's Photo field using the embedded ENFPhotoIndex lookup.
+  ///
+  /// Looks up by 'LastName, FirstName'; falls back to the 'NoPhoto' entry (0004).
+  /// Players with an empty name are skipped.  Returns the number of players updated.
+  int autoUpdatePhoto() {
+    int updated = 0;
+    for (int slot = 0; slot < kMaxPlayerSlot; slot++) {
+      final recFile = _base + kPlayerStartGd + slot * kPlayerStride;
+      if (recFile + 0x53 > _data.length) break;
+      final p = PlayerRecord(_data, recFile, _base);
+      if (p.firstName.isEmpty && p.lastName.isEmpty) continue;
+
+      final key = '${p.lastName}, ${p.firstName}';
+      final val = DataMap.PhotoMap.containsKey(key)
+          ? DataMap.PhotoMap[key]!
+          : DataMap.PhotoMap['NoPhoto'] ?? '0000';
+
+      p.photo = int.parse(val);
+      updated++;
     }
     return updated;
   }

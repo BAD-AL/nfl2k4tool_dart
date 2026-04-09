@@ -1,4 +1,5 @@
 export 'src/constants.dart';
+export 'src/data_map.dart';
 export 'src/player_record.dart';
 export 'src/gamesave.dart';
 export 'src/roster_key.dart';

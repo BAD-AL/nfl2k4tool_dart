@@ -46,7 +46,7 @@ void _saveFile(NFL2K4Gamesave save, String path) {
 // ---------------------------------------------------------------------------
 void main(List<String> args) {
     if (args.isEmpty) {
-    _printUsage();
+    print(helpMsg);
     exit(0);
   }
   String result = runMain(args);
@@ -126,8 +126,7 @@ String runMain(List<String> args) {
     } else if (a.startsWith('-key=')) {
       keyArg = a.substring(5);
     } else if (a == '-help' || a == '--help' || a == '/?' || a == '/help') {
-      _printUsage();
-      exit(0);
+      return helpMsg;
     } else if (!a.startsWith('-') && saveFileName == null) {
       saveFileName = a;
     } else if (!a.startsWith('-') && saveFileName != null) {
@@ -212,8 +211,7 @@ String runMain(List<String> args) {
       }
       save.fixKrPrWithCbs();
       _saveFile(save, outputFileName);
-      print('KR/PR fix applied and saved to $outputFileName');
-      return "";
+      return 'KR/PR fix applied and saved to $outputFileName';
     }
 
     if (fixSkin) {
@@ -223,8 +221,7 @@ String runMain(List<String> args) {
       }
       final count = save.autoFixSkinFromPhoto();
       _saveFile(save, outputFileName);
-      print('Skin/face fix applied: $count players updated. Saved to $outputFileName');
-      return "";
+      return 'Skin/face fix applied: $count players updated. Saved to $outputFileName';
     }
 
     StringBuffer sb =StringBuffer();
@@ -415,8 +412,7 @@ void _applyData(NFL2K4Gamesave save, String dataFile, RosterKey key) {
 
 // ---------------------------------------------------------------------------
 
-void _printUsage() {
-  print('''
+String helpMsg = '''
 NFL 2K4 Gamesave Tool
 
 Usage:
@@ -487,5 +483,4 @@ Examples:
 
   # Export just the 49ers
   dart run bin/nfl2k4tool_dart.dart roster.dat -ab -team=49ers
-''');
-}
+''';
