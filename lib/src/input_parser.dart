@@ -31,6 +31,10 @@ enum _Mode { sequential, lookupAndModify, schedule, teamData, coachData }
 class InputParser {
   final NFL2K4Gamesave _save;
 
+  static final _deleteCommas = RegExp(r',\s*$');
+  static final _teamRegex =  RegExp(r'^Team\s*=', caseSensitive: false);
+
+
   InputParser(this._save);
 
   ApplyResult applyText(String text, {RosterKey? key}) {
@@ -56,7 +60,7 @@ class InputParser {
 
     for (final rawLine in text.split(RegExp(r'[\r\n]+'))) {
       // Strip trailing comma and whitespace.
-      final line = rawLine.trim().replaceAll(RegExp(r',\s*$'), '');
+      final line = rawLine.trim().replaceAll(_deleteCommas, '');
       if (line.isEmpty || line.startsWith('#')) continue;
 
       // ── PlayerControlled= directive ─────────────────────────────────────
@@ -144,13 +148,8 @@ class InputParser {
       }
 
       // ── YEAR= / Week header → schedule mode ──────────────────────────────
-      if (line.toLowerCase().startsWith('year=') ||
-          RegExp(r'^week\b', caseSensitive: false).hasMatch(line)) {
-        if (RegExp(r'^week\b', caseSensitive: false).hasMatch(line)) {
-          mode = _Mode.schedule;
-        }
-        scheduleLines.add(line);
-        continue;
+      if ( line.toLowerCase().startsWith('week') ) {
+        mode = _Mode.schedule;
       }
 
       // ── Schedule mode: accumulate game lines ──────────────────────────────
@@ -166,7 +165,7 @@ class InputParser {
       }
 
       // ── Team = xxx ───────────────────────────────────────────────────────
-      if (RegExp(r'^Team\s*=', caseSensitive: false).hasMatch(line)) {
+      if (_teamRegex.hasMatch(line)) {
         mode = _Mode.sequential; // Team= always resets to sequential
         final eqIdx = line.indexOf('=');
         String teamName = line.substring(eqIdx + 1);
@@ -175,8 +174,9 @@ class InputParser {
         }
         teamName = teamName.trim();
 
-        if (teamName.toLowerCase() == 'free agents' ||
-            teamName.toLowerCase() == 'fa') {
+        final teamNameLower = teamName.toLowerCase();
+        if (teamNameLower == 'freeagents' ||
+            teamNameLower == 'fa') {
           currentTeamPlayers = _save.getFreeAgentPlayers();
         } else {
           final idx = _resolveTeamIndex(teamName);

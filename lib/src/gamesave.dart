@@ -404,7 +404,7 @@ class NFL2K4Gamesave {
         final ln = p.lastName.toLowerCase();
         if (fn.isEmpty && ln.isEmpty) continue;
         if (fn.contains(q) || ln.contains(q) || '$fn $ln'.contains(q)) {
-          results.add((player: p, team: 'Free Agents', teamIndex: -1));
+          results.add((player: p, team: 'FreeAgents', teamIndex: -1));
         }
       } catch (_) {
         continue;
@@ -1475,7 +1475,7 @@ class NFL2K4Gamesave {
 
     if (teamIndex != null) {
       if (teamIndex == -1) {
-        writeSection(getFreeAgentPlayers(), 'Free Agents');
+        writeSection(getFreeAgentPlayers(), 'FreeAgents');
       } else {
         writeSection(getTeamPlayers(teamIndex), kTeamNames[teamIndex]);
       }
@@ -1485,7 +1485,7 @@ class NFL2K4Gamesave {
         writeSection(getTeamPlayers(t), kTeamNames[t]);
       }
       if (includeFreeAgents) {
-        writeSection(getFreeAgentPlayers(), 'Free Agents');
+        writeSection(getFreeAgentPlayers(), 'FreeAgents');
       }
     }
     return buf.toString();
