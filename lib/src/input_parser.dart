@@ -21,10 +21,10 @@ enum _Mode { sequential, lookupAndModify, schedule, teamData, coachData }
 /// Sequential.
 ///
 /// **Key resolution** (highest priority first):
-///   1. `Key=field1,field2,...` directive encountered during parsing
-///   2. `#field1,field2,...` comment header on the first `#` line
-///   3. [key] parameter passed to [applyText]
-///   4. [RosterKey.all] fallback
+///   1. `Key=field1,field2,...` directive encountered during parsing — also persists to [RosterKey.current]
+///      (`Key=` alone resets [RosterKey.current] to [RosterKey.all])
+///   2. [key] parameter passed to [applyText]
+///   3. [RosterKey.current] (session state; defaults to [RosterKey.all])
 ///
 /// **`?` / `_` sentinels**: any column whose value is `?` or `_` is skipped
 /// without modifying the player record.
@@ -42,23 +42,7 @@ class InputParser {
     final commaCount = ','.allMatches(text).length;
     final delim = semiCount > commaCount ? ';' : ',';
 
-    // Pre-scan: read the first '#' line to auto-detect the key.
-    RosterKey activeKey = key ?? RosterKey.all;
-    for (final line in text.split(RegExp(r'[\r\n]+'))) {
-      final t = line.trim();
-      if (t.startsWith('#')) {
-        // Strip '#' and trailing comma, then try to parse as a key.
-        final content = t.substring(1).replaceAll(RegExp(r',\s*$'), '').trim();
-        if (content.isNotEmpty) {
-          try {
-            activeKey = RosterKey.parse(content);
-          } catch (_) {
-            // Header doesn't look like a valid key — keep the fallback.
-          }
-        }
-        break;
-      }
-    }
+    RosterKey activeKey = key ?? RosterKey.current;
 
     _Mode mode = _Mode.sequential;
     List<PlayerRecord> currentTeamPlayers = [];
@@ -146,10 +130,15 @@ class InputParser {
 
       // ── Key= directive ───────────────────────────────────────────────────
       if (line.toLowerCase().startsWith('key=')) {
-        try {
-          activeKey = RosterKey.parse(line.substring(4));
-        } catch (e) {
-          errors.add('Invalid Key directive: $e');
+        final rhs = line.substring(4).trim();
+        if (rhs.isEmpty) {
+          activeKey = RosterKey.current = RosterKey.all;
+        } else {
+          try {
+            activeKey = RosterKey.current = RosterKey.parse(rhs);
+          } catch (e) {
+            errors.add('Invalid Key directive: $e');
+          }
         }
         continue;
       }

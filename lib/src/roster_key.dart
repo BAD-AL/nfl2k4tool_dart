@@ -58,6 +58,11 @@ class RosterKey {
     ...abilities.fields,
     ...appearance.fields.skip(4), // skip the identity prefix duplicates
   ]);
+
+  /// The active key for the current session.  Defaults to [all] and is updated
+  /// by a `Key=` directive in [InputParser.applyText].  Persists across calls
+  /// since a new [InputParser] is created for each apply operation.
+  static RosterKey current = all;
 }
 
 /// Canonical lowercase set of all field names accepted by [PlayerRecord.getAttribute].
