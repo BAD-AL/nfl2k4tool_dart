@@ -59,6 +59,7 @@ class InputParser {
   static final _deleteCommas = RegExp(r',\s*$');
   static final _teamRegex = RegExp(r'^Team\s*=', caseSensitive: false);
   static final _autoDepthChartRe = RegExp(r'^\s*autoupdatedepthchart\s*$', caseSensitive: false, multiLine: true);
+  static final _compressFARe = RegExp(r'^\s*compressfa=(\d+)\s*$', caseSensitive: false, multiLine: true);
 
 
   InputParser(this._save);
@@ -75,6 +76,11 @@ class InputParser {
     RosterKey activeKey = key ?? RosterKey.current;
 
     final autoUpdateDepthChart = _autoDepthChartRe.hasMatch(text);
+
+    final compressFAMatch = _compressFARe.firstMatch(text);
+    if (compressFAMatch != null) {
+      _applyCompressFA(int.parse(compressFAMatch.group(1)!), errors);
+    }
 
     _Mode mode = _Mode.sequential;
     List<PlayerRecord> currentTeamPlayers = [];
@@ -155,34 +161,30 @@ class InputParser {
         continue;
       }
 
+      if (line.trim().toLowerCase() == 'autoupdatedepthchart') {
+        // Already took care of this one with text search at the beginning
+        continue;
+      }
+
       //vrabelFix
       if (line.trim().toLowerCase() == 'vrabelfix') {
         vrabelFix = true;
         continue;
       }
 
-      // ── CompressFA= directive ────────────────────────────────────────────
-      // Applied immediately so freed name-section space is available for
-      // subsequent player writes.  e.g. CompressFA=20 shrinks the last 20 FAs.
-      if (line.toLowerCase().startsWith('compressfa=')) {
-        final rhs = line.substring('compressfa='.length).trim();
-        final count = int.tryParse(rhs);
-        if (count == null || count <= 0) {
-          errors.add('CompressFA: invalid count "$rhs"');
-        } else {
-          final fas = _save.getFreeAgentPlayers();
-          final start = (fas.length - count).clamp(0, fas.length);
-          for (int i = start; i < fas.length; i++) {
-            try {
-              fas[i].setAttribute('fname', 'f');
-              fas[i].setAttribute('lname', 'a');
-            } catch (e) {
-              errors.add('CompressFA: failed to shrink FA slot $i: $e');
-            }
-          }
-        }
+      if (line.trim().toLowerCase() == 'autoupdatepbp') {
+        _save.autoUpdatePBP();
         continue;
       }
+
+      if (line.trim().toLowerCase() == 'autoupdatephoto') {
+        _save.autoUpdatePhoto();
+        continue;
+      }
+
+
+      // ── CompressFA= directive ────────────────────────────────────────────
+      if (line.toLowerCase().startsWith('compressfa=')) continue; // handled above
 
       // ── TeamDataKey= directive ───────────────────────────────────────────
       if (line.toLowerCase().startsWith('teamdatakey=')) {
@@ -455,6 +457,19 @@ class InputParser {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
+
+  void _applyCompressFA(int count, List<String> errors) {
+    final fas = _save.getFreeAgentPlayers();
+    final start = (fas.length - count).clamp(0, fas.length);
+    for (int i = start; i < fas.length; i++) {
+      try {
+        fas[i].setAttribute('fname', 'f');
+        fas[i].setAttribute('lname', 'a');
+      } catch (e) {
+        errors.add('CompressFA: failed to shrink FA slot $i: $e');
+      }
+    }
+  }
 
   static int _fieldIndex(RosterKey key, String name) =>
       key.fields.indexWhere((f) => f.toLowerCase() == name.toLowerCase());
