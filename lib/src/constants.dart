@@ -184,6 +184,12 @@ const List<String> kTeamNames = [
   'All AFC', 'All NFC', 'All NFL',                                     // 40-42
 ];
 
+/// Canonical position group order used when sorting a team's depth chart.
+const List<String> kPosOrder = [
+  'C', 'CB', 'DE', 'DT', 'FB', 'FS', 'G', 'RB',
+  'ILB', 'K', 'OLB', 'P', 'QB', 'SS', 'T', 'TE', 'WR',
+];
+
 /// Sentinel value in [kTeamReturnerSlots] meaning "not assigned".
 /// Slots are 1-based; 53 appears across many teams simultaneously in the
 /// source data, indicating the game uses it as a "no returner" placeholder.

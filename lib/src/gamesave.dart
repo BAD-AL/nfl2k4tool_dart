@@ -810,7 +810,7 @@ class NFL2K4Gamesave {
   ///
   /// Uses a gather/bucket approach: players are walked in current slot order
   /// and appended to their position's bucket, preserving depth-chart order
-  /// within each group.  Buckets are then drained in [_kPosOrder] sequence.
+  /// within each group.  Buckets are then drained in [kPosOrder] sequence.
   /// All player data is exported as CSV rows **before** any writes so that
   /// in-place writes cannot corrupt later reads.
   ///
@@ -857,7 +857,7 @@ class NFL2K4Gamesave {
 
     // Drain buckets in canonical order; unknown positions last.
     final ordered = <String>[];
-    for (final pos in _kPosOrder) {
+    for (final pos in kPosOrder) {
       ordered.addAll(buckets.remove(pos) ?? []);
     }
     for (final remaining in buckets.values) {
@@ -911,8 +911,8 @@ class NFL2K4Gamesave {
       final destGd = ptrGd + rel - 1;
       final recFile = _base + destGd - 4;
       if (recFile < 0 || recFile + 0x53 > _data.length) continue;
-      final posIdx = _kPosOrder.indexOf(PlayerRecord(_data, recFile, _base).position);
-      slots.add((destGd, posIdx < 0 ? _kPosOrder.length : posIdx));
+      final posIdx = kPosOrder.indexOf(PlayerRecord(_data, recFile, _base).position);
+      slots.add((destGd, posIdx < 0 ? kPosOrder.length : posIdx));
     }
 
     // Stable-sort by position order, preserving within-group order.
@@ -1246,11 +1246,6 @@ class NFL2K4Gamesave {
     }
   }
 
-  /// Canonical 2K4 position group order, matching the base roster layout.
-  static const _kPosOrder = [
-    'C', 'CB', 'DE', 'DT', 'FB', 'FS', 'G', 'RB',
-    'ILB', 'K', 'OLB', 'P', 'QB', 'SS', 'T', 'TE', 'WR',
-  ];
 
   // ---------------------------------------------------------------------------
   // Player name writing

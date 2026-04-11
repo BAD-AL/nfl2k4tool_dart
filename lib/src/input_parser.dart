@@ -9,6 +9,29 @@ import 'schedule.dart';
 
 enum _Mode { sequential, lookupAndModify, schedule, teamData, coachData, freeAgent }
 
+/// Groups incoming player lines by position and returns them in [kPositionNames]
+/// order via [toList].  Within each position group insertion order is preserved
+/// (= depth-chart order supplied by the input file).
+class _PlayerBucket {
+  final Map<String, List<String>> _buckets = {};
+
+  void add(String position, String line) {
+    (_buckets[position] ??= []).add(line);
+  }
+
+  List<String> toList() {
+    final result = <String>[];
+    for (final pos in kPosOrder) {
+      result.addAll(_buckets[pos] ?? []);
+    }
+    // Any position not in kPosOrder goes at the end, order preserved.
+    for (final entry in _buckets.entries) {
+      if (!kPosOrder.contains(entry.key)) result.addAll(entry.value);
+    }
+    return result;
+  }
+}
+
 /// Parses delimited player-data text and applies it to a [NFL2K4Gamesave].
 ///
 /// **Sequential mode** (default): `Team = xxx` sections are processed in order;
@@ -34,7 +57,8 @@ class InputParser {
   final NFL2K4Gamesave _save;
 
   static final _deleteCommas = RegExp(r',\s*$');
-  static final _teamRegex =  RegExp(r'^Team\s*=', caseSensitive: false);
+  static final _teamRegex = RegExp(r'^Team\s*=', caseSensitive: false);
+  static final _autoDepthChartRe = RegExp(r'^\s*autoupdatedepthchart\s*$', caseSensitive: false, multiLine: true);
 
 
   InputParser(this._save);
@@ -50,15 +74,44 @@ class InputParser {
 
     RosterKey activeKey = key ?? RosterKey.current;
 
+    final autoUpdateDepthChart = _autoDepthChartRe.hasMatch(text);
+
     _Mode mode = _Mode.sequential;
     List<PlayerRecord> currentTeamPlayers = [];
     int teamCursor = 0;
     Map<String, Queue<PlayerRecord>> faBuckets = {};
+    // activeBucket collects incoming lines grouped by position (only when
+    // autoUpdateDepthChart is true).  sectionPlayersBuf holds the physical
+    // PlayerRecords in slot order.  On flush, bucket.toList()[i] is written
+    // to sectionPlayersBuf[i] so slot 0 always gets the first sorted line.
+    _PlayerBucket? activeBucket = autoUpdateDepthChart ? _PlayerBucket() : null;
+    final sectionPlayersBuf = <PlayerRecord>[];
+
+    void flushSectionBuf() {
+      if (activeBucket == null || sectionPlayersBuf.isEmpty) return;
+      final sortedLines = activeBucket!.toList();
+      for (int i = 0; i < sortedLines.length && i < sectionPlayersBuf.length; i++) {
+        final cols = _splitLine(sortedLines[i], delim);
+        final player = sectionPlayersBuf[i];
+        bool anySet = false;
+        for (int j = 0; j < activeKey.fields.length && j < cols.length; j++) {
+          final value = cols[j].trim();
+          if (value == '?' || value == '_' || value.isEmpty) continue;
+          try {
+            player.setAttribute(activeKey.fields[j], value);
+            anySet = true;
+          } catch (e) {
+            errors.add('${player.fullName}: failed to set ${activeKey.fields[j]}="$value": $e;');
+          }
+        }
+        if (anySet) updated++;
+      }
+      activeBucket = _PlayerBucket();
+      sectionPlayersBuf.clear();
+    }
     final scheduleLines = <String>[];   // accumulates schedule content
     List<String>? teamDataFields;       // active team data key fields
     List<String>? coachDataFields;      // active coach data key fields
-    bool autoUpdateDepthChart = false;  // set by AutoUpdateDepthChart directive
-    bool autoUpdateDepthChart_pointer = false;  // set by AutoUpdateDepthChart directive
     bool autoFixSkin = false;           // set by AutoFixSkinFromPhoto directive
     bool vrabelFix = false;
 
@@ -93,18 +146,6 @@ class InputParser {
             }
           }
         }
-        continue;
-      }
-
-      // ── AutoUpdateDepthChart directive ───────────────────────────────────
-      if (line.trim().toLowerCase() == 'autoupdatedepthchart') {
-        autoUpdateDepthChart = true;
-        continue;
-      }
-
-      // ── autoUpdateDepthChart_pointer directive ───────────────────────────────────
-      if (line.trim().toLowerCase() == 'autoupdatedepthchart_pointer') {
-        autoUpdateDepthChart_pointer = true;
         continue;
       }
 
@@ -167,6 +208,7 @@ class InputParser {
 
       // ── Key= directive ───────────────────────────────────────────────────
       if (line.toLowerCase().startsWith('key=')) {
+        flushSectionBuf();
         final rhs = line.substring(4).trim();
         if (rhs.isEmpty) {
           activeKey = RosterKey.current = RosterKey.all;
@@ -199,6 +241,7 @@ class InputParser {
 
       // ── Team = xxx ───────────────────────────────────────────────────────
       if (_teamRegex.hasMatch(line)) {
+        flushSectionBuf();
         mode = _Mode.sequential; // Team= always resets to sequential
         final eqIdx = line.indexOf('=');
         String teamName = line.substring(eqIdx + 1);
@@ -326,12 +369,19 @@ class InputParser {
         player = bucket.removeFirst();
       } else if (mode == _Mode.sequential) {
         if (teamCursor < currentTeamPlayers.length) {
-          player = currentTeamPlayers[teamCursor++];
+          if (activeBucket != null) {
+            final pi = _fieldIndex(activeKey, 'position');
+            final pos = pi >= 0 && pi < cols.length ? cols[pi].trim() : '';
+            activeBucket!.add(pos, line);
+            sectionPlayersBuf.add(currentTeamPlayers[teamCursor++]);
+          } else {
+            player = currentTeamPlayers[teamCursor++];
+          }
         } else {
           errors.add('Team player limit reached; skipping: $line');
           skipped++;
-          continue;
         }
+        if (activeBucket != null) continue;
       } else {
         // LookupAndModify: find player by name.
         final fi = _fieldIndex(activeKey, 'fname');
@@ -362,14 +412,16 @@ class InputParser {
         final value = cols[i].trim();
         if (value == '?' || value == '_' || value.isEmpty) continue;
         try {
-          player.setAttribute(fieldName, value);
+          player!.setAttribute(fieldName, value);
           anySet = true;
         } catch (e) {
-          errors.add('${player.fullName}: failed to set $fieldName="$value": $e;');
+          errors.add('${player!.fullName}: failed to set $fieldName="$value": $e;');
         }
       }
       if (anySet) updated++;
     }
+
+    flushSectionBuf();
 
     // ── Apply accumulated schedule data ──────────────────────────────────────
     if (scheduleLines.isNotEmpty) {
@@ -389,14 +441,7 @@ class InputParser {
     }
 
     // ── AutoUpdateDepthChart post-processing ─────────────────────────────────
-    if (autoUpdateDepthChart) {
-      _save.sortAllTeamsPlayersByPosition();
-      _save.fixKrPrWithCbs();
-    }
-
-    // ── autoUpdateDepthChart_pointer post-processing ────────────────────────
-    if (autoUpdateDepthChart_pointer) {
-      _save.sortAllTeamsPlayersByPosition_pointer();
+    if (autoUpdateDepthChart ) {
       _save.fixKrPrWithCbs();
     }
 
