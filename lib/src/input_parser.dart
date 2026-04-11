@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'apply_result.dart';
 import 'constants.dart';
 import 'gamesave.dart';
@@ -5,7 +7,7 @@ import 'player_record.dart';
 import 'roster_key.dart';
 import 'schedule.dart';
 
-enum _Mode { sequential, lookupAndModify, schedule, teamData, coachData }
+enum _Mode { sequential, lookupAndModify, schedule, teamData, coachData, freeAgent }
 
 /// Parses delimited player-data text and applies it to a [NFL2K4Gamesave].
 ///
@@ -51,10 +53,12 @@ class InputParser {
     _Mode mode = _Mode.sequential;
     List<PlayerRecord> currentTeamPlayers = [];
     int teamCursor = 0;
+    Map<String, Queue<PlayerRecord>> faBuckets = {};
     final scheduleLines = <String>[];   // accumulates schedule content
     List<String>? teamDataFields;       // active team data key fields
     List<String>? coachDataFields;      // active coach data key fields
     bool autoUpdateDepthChart = false;  // set by AutoUpdateDepthChart directive
+    bool autoUpdateDepthChart_pointer = false;  // set by AutoUpdateDepthChart directive
     bool autoFixSkin = false;           // set by AutoFixSkinFromPhoto directive
     bool vrabelFix = false;
 
@@ -98,6 +102,12 @@ class InputParser {
         continue;
       }
 
+      // ── autoUpdateDepthChart_pointer directive ───────────────────────────────────
+      if (line.trim().toLowerCase() == 'autoupdatedepthchart_pointer') {
+        autoUpdateDepthChart_pointer = true;
+        continue;
+      }
+
       // ── AutoFixSkinFromPhoto directive ────────────────────────────────────
       if (line.trim().toLowerCase() == 'autofixskinfromphoto') {
         autoFixSkin = true;
@@ -107,6 +117,29 @@ class InputParser {
       //vrabelFix
       if (line.trim().toLowerCase() == 'vrabelfix') {
         vrabelFix = true;
+        continue;
+      }
+
+      // ── CompressFA= directive ────────────────────────────────────────────
+      // Applied immediately so freed name-section space is available for
+      // subsequent player writes.  e.g. CompressFA=20 shrinks the last 20 FAs.
+      if (line.toLowerCase().startsWith('compressfa=')) {
+        final rhs = line.substring('compressfa='.length).trim();
+        final count = int.tryParse(rhs);
+        if (count == null || count <= 0) {
+          errors.add('CompressFA: invalid count "$rhs"');
+        } else {
+          final fas = _save.getFreeAgentPlayers();
+          final start = (fas.length - count).clamp(0, fas.length);
+          for (int i = start; i < fas.length; i++) {
+            try {
+              fas[i].setAttribute('fname', 'f');
+              fas[i].setAttribute('lname', 'a');
+            } catch (e) {
+              errors.add('CompressFA: failed to shrink FA slot $i: $e');
+            }
+          }
+        }
         continue;
       }
 
@@ -175,9 +208,12 @@ class InputParser {
         teamName = teamName.trim();
 
         final teamNameLower = teamName.toLowerCase();
-        if (teamNameLower == 'freeagents' ||
-            teamNameLower == 'fa') {
-          currentTeamPlayers = _save.getFreeAgentPlayers();
+        if (teamNameLower == 'freeagents' || teamNameLower == 'fa') {
+          mode = _Mode.freeAgent;
+          faBuckets = {};
+          for (final p in _save.getFreeAgentPlayers()) {
+            (faBuckets[p.position] ??= Queue()).add(p);
+          }
         } else {
           final idx = _resolveTeamIndex(teamName);
           if (idx >= 0) {
@@ -269,7 +305,26 @@ class InputParser {
 
       PlayerRecord? player;
 
-      if (mode == _Mode.sequential) {
+      if (mode == _Mode.freeAgent) {
+        final pi = _fieldIndex(activeKey, 'position');
+        if (pi < 0 || pi >= cols.length) {
+          errors.add('FreeAgents section requires position in key: $line');
+          skipped++;
+          continue;
+        }
+        final pos = cols[pi].trim();
+        final bucket = faBuckets[pos];
+        if (bucket == null || bucket.isEmpty) {
+          final fi = _fieldIndex(activeKey, 'fname');
+          final li = _fieldIndex(activeKey, 'lname');
+          final fname = (fi >= 0 && fi < cols.length) ? cols[fi].trim() : '?';
+          final lname = (li >= 0 && li < cols.length) ? cols[li].trim() : '?';
+          errors.add('FreeAgents: no slot for $pos $fname $lname (skipped)');
+          skipped++;
+          continue;
+        }
+        player = bucket.removeFirst();
+      } else if (mode == _Mode.sequential) {
         if (teamCursor < currentTeamPlayers.length) {
           player = currentTeamPlayers[teamCursor++];
         } else {
@@ -310,7 +365,7 @@ class InputParser {
           player.setAttribute(fieldName, value);
           anySet = true;
         } catch (e) {
-          errors.add('${player.fullName}: failed to set $fieldName="$value": $e');
+          errors.add('${player.fullName}: failed to set $fieldName="$value": $e;');
         }
       }
       if (anySet) updated++;
@@ -336,6 +391,12 @@ class InputParser {
     // ── AutoUpdateDepthChart post-processing ─────────────────────────────────
     if (autoUpdateDepthChart) {
       _save.sortAllTeamsPlayersByPosition();
+      _save.fixKrPrWithCbs();
+    }
+
+    // ── autoUpdateDepthChart_pointer post-processing ────────────────────────
+    if (autoUpdateDepthChart_pointer) {
+      _save.sortAllTeamsPlayersByPosition_pointer();
       _save.fixKrPrWithCbs();
     }
 

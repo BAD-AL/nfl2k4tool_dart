@@ -889,6 +889,51 @@ class NFL2K4Gamesave {
     }
   }
 
+  /// Pointer-swap variant of [sortTeamPlayersByPosition].
+  /// Reorders only the 4-byte relative pointers in the team's slot array —
+  /// player records stay at their fixed physical addresses, so no string-table
+  /// writes or [_adjustPlayerNamePointers] calls are needed.
+  /// Kept separate for testing; use [sortTeamPlayersByPosition] for production.
+  void sortTeamPlayersByPosition_pointer(int teamIndex) {
+    if (teamIndex < 0 || teamIndex >= 32) {
+      throw RangeError.range(teamIndex, 0, 31, 'teamIndex');
+    }
+
+    // Read team slot pointers as (destGd, positionSortKey) pairs.
+    final slots = <(int, int)>[];
+    for (int slot = 0; slot < kTeamMaxPlayers; slot++) {
+      final ptrFile = _base + kTeamBlockGd + teamIndex * kTeamStride + slot * 4;
+      if (ptrFile + 4 > _data.length) break;
+      final bd  = ByteData.sublistView(_data, ptrFile, ptrFile + 4);
+      final rel = bd.getInt32(0, Endian.little);
+      if (rel == 0) break;
+      final ptrGd  = ptrFile - _base;
+      final destGd = ptrGd + rel - 1;
+      final recFile = _base + destGd - 4;
+      if (recFile < 0 || recFile + 0x53 > _data.length) continue;
+      final posIdx = _kPosOrder.indexOf(PlayerRecord(_data, recFile, _base).position);
+      slots.add((destGd, posIdx < 0 ? _kPosOrder.length : posIdx));
+    }
+
+    // Stable-sort by position order, preserving within-group order.
+    slots.sort((a, b) => a.$2.compareTo(b.$2));
+
+    // Write back sorted pointers.
+    for (int i = 0; i < slots.length; i++) {
+      final ptrFile = _base + kTeamBlockGd + teamIndex * kTeamStride + i * 4;
+      final ptrGd   = ptrFile - _base;
+      ByteData.sublistView(_data, ptrFile, ptrFile + 4)
+          .setInt32(0, slots[i].$1 - ptrGd + 1, Endian.little);
+    }
+  }
+
+  /// Calls [sortTeamPlayersByPosition_pointer] for all 32 NFL teams.
+  void sortAllTeamsPlayersByPosition_pointer() {
+    for (int t = 0; t < 32; t++) {
+      sortTeamPlayersByPosition_pointer(t);
+    }
+  }
+
   /// For each team with invalid KR/PR slots, rotates the last available CBs
   /// into those slots, shifting the players between them up by one.
   ///
