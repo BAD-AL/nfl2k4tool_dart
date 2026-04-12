@@ -3,10 +3,11 @@ import 'package:nfl2k4tool_dart/nfl2k4tool_dart.dart';
 import 'package:test/test.dart';
 import 'test_helpers.dart';
 
-const _ps2RosterPath    = 'test/test_files/BASLUS-20727BaseRos';
-const _ps2FranchisePath = 'test/test_files/BASLUS-20727BaseFran';
-const _xboxRosterPath   = 'test/test_files/base_roster_2k4_savegame.dat';
-const _dataFile         = 'test/test_files/BaseNFL2K5Teams.ab.app.txt';
+const _ps2RosterPath      = 'test/test_files/BASLUS-20727BaseRos';
+const _ps2FranchisePath   = 'test/test_files/BASLUS-20727BaseFran';
+const _xboxRosterPath     = 'test/test_files/base_roster_2k4_savegame.dat';
+const _xboxFranchisePath  = 'test/test_files/DefFran2K4_savegame.dat';
+const _dataFile           = 'test/test_files/BaseNFL2K5Teams.ab.app.txt';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -158,6 +159,118 @@ void main() {
       final save1 = loadFile(_ps2RosterPath);
       final save2 = NFL2K4Gamesave.fromBytes(save1.toBytes());
       expect(save2.isXbox, isFalse);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Xbox → PS2 conversion
+  // ---------------------------------------------------------------------------
+  group('Xbox → PS2 conversion', () {
+    late NFL2K4Gamesave xboxSave;
+
+    setUp(() {
+      xboxSave = loadFile(_xboxRosterPath);
+    });
+
+    NFL2K4Gamesave _reloadPsu() =>
+        NFL2K4Gamesave.fromPs2Save(xboxSave.toPs2PsuBytes());
+
+    NFL2K4Gamesave _reloadMax() =>
+        NFL2K4Gamesave.fromPs2Save(xboxSave.toPs2MaxBytes());
+
+    test('PSU: reloaded save is not Xbox', () {
+      expect(_reloadPsu().isXbox, isFalse);
+    });
+
+    test('PSU: reloaded save has ROST at offset 0x00', () {
+      expect(_reloadPsu().base, equals(0x00));
+    });
+
+    test('PSU: raw data does not start with VSAV magic', () {
+      final bytes = _reloadPsu().toBytes();
+      expect(bytes.sublist(0, 4), isNot(equals([0x56, 0x53, 0x41, 0x56])));
+    });
+
+    test('PSU: raw data starts with ROST magic', () {
+      final bytes = _reloadPsu().toBytes();
+      expect(bytes.sublist(0, 4), equals([0x52, 0x4F, 0x53, 0x54]));
+    });
+
+    test('MAX: reloaded save is not Xbox', () {
+      expect(_reloadMax().isXbox, isFalse);
+    });
+
+    test('MAX: reloaded save has ROST at offset 0x00', () {
+      expect(_reloadMax().base, equals(0x00));
+    });
+
+    test('MAX: raw data starts with ROST magic', () {
+      final bytes = _reloadMax().toBytes();
+      expect(bytes.sublist(0, 4), equals([0x52, 0x4F, 0x53, 0x54]));
+    });
+
+    test('player data is preserved across all 32 teams', () {
+      final ps2Save = _reloadPsu();
+      for (int t = 0; t < 32; t++) {
+        final xboxPlayers = xboxSave.getTeamPlayers(t);
+        final ps2Players  = ps2Save.getTeamPlayers(t);
+        expect(ps2Players.length, equals(xboxPlayers.length),
+            reason: '${kTeamNames[t]} player count differs');
+        for (int i = 0; i < xboxPlayers.length; i++) {
+          expect(
+            ps2Players[i].getAttribute('Speed'),
+            equals(xboxPlayers[i].getAttribute('Speed')),
+            reason: '${kTeamNames[t]} player $i Speed differs',
+          );
+        }
+      }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Xbox franchise → PS2 conversion
+  // ---------------------------------------------------------------------------
+  group('Xbox franchise → PS2 conversion', () {
+    late NFL2K4Gamesave xboxFran;
+
+    setUp(() {
+      xboxFran = loadFile(_xboxFranchisePath);
+    });
+
+    test('Xbox franchise is detected as franchise', () {
+      expect(xboxFran.isFranchise, isTrue);
+    });
+
+    test('PSU: reloaded franchise is not Xbox', () {
+      final ps2 = NFL2K4Gamesave.fromPs2Save(xboxFran.toPs2PsuBytes());
+      expect(ps2.isXbox, isFalse);
+    });
+
+    test('PSU: reloaded franchise is still a franchise save', () {
+      final ps2 = NFL2K4Gamesave.fromPs2Save(xboxFran.toPs2PsuBytes());
+      expect(ps2.isFranchise, isTrue);
+    });
+
+    test('PSU: franchise ROST is at PS2-native offset 0x1CC', () {
+      final ps2 = NFL2K4Gamesave.fromPs2Save(xboxFran.toPs2PsuBytes());
+      expect(ps2.base, equals(0x1CC));
+    });
+
+    test('PSU: franchise player data is preserved across all 32 teams', () {
+      final ps2 = NFL2K4Gamesave.fromPs2Save(xboxFran.toPs2PsuBytes());
+      for (int t = 0; t < 32; t++) {
+        final xPlayers   = xboxFran.getTeamPlayers(t);
+        final ps2Players = ps2.getTeamPlayers(t);
+        expect(ps2Players.length, equals(xPlayers.length),
+            reason: '${kTeamNames[t]} player count differs');
+        for (int i = 0; i < xPlayers.length; i++) {
+          expect(
+            ps2Players[i].getAttribute('Speed'),
+            equals(xPlayers[i].getAttribute('Speed')),
+            reason: '${kTeamNames[t]} player $i Speed differs',
+          );
+        }
+      }
     });
   });
 

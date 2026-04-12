@@ -3,7 +3,7 @@ import 'package:crypto/crypto.dart';
 import 'package:archive/archive.dart';
 import 'package:dart_mymc/dart_mymc.dart';
 import 'package:xbox_memory_unit_tool/xbox_memory_unit_tool.dart';
-import 'base_roster.dart';
+import 'resources.dart';
 import 'constants.dart';
 import 'data_map.dart';
 import 'player_record.dart';
@@ -138,7 +138,7 @@ class NFL2K4Gamesave {
 
   /// Loads the embedded 2K4 base roster.
   factory NFL2K4Gamesave.fromBaseRoster() =>
-      NFL2K4Gamesave.fromBytes(kBase_roster);
+      NFL2K4Gamesave.fromBytes(kResources);
 
   /// Opens a PS2 PSU or MAX save file.
   ///
@@ -1591,9 +1591,81 @@ class NFL2K4Gamesave {
 
   Uint8List _toPs2Bytes(Ps2SaveFormat format) {
     final dirName = _ps2DirName ?? _defaultPs2DirName;
-    final fileMap = <String, Uint8List>{dirName: Uint8List.fromList(_data)};
-    if (_ps2SideFiles != null) fileMap.addAll(_ps2SideFiles!);
+    final Uint8List ps2Data;
+    if (isXbox) {
+      if (isFranchise) {
+        // Xbox franchise: VSAV(kBase=24) + franchise_prefix(456) + ROST
+        // PS2 franchise:                   franchise_prefix(460) + ROST
+        // Convert the prefix, then append ROST data unchanged.
+        final xboxPfx  = Uint8List.sublistView(_data, kBase, _base);
+        final rostData = Uint8List.sublistView(_data, _base);
+        final ps2Pfx   = _convertXboxFranchisePrefix(xboxPfx);
+        ps2Data = Uint8List(ps2Pfx.length + rostData.length)
+          ..setRange(0, ps2Pfx.length, ps2Pfx)
+          ..setRange(ps2Pfx.length, ps2Pfx.length + rostData.length, rostData);
+      } else {
+        // Xbox roster: VSAV(kBase=24) + ROST — strip only the VSAV header.
+        ps2Data = Uint8List.sublistView(_data, kBase);
+      }
+    } else {
+      ps2Data = Uint8List.fromList(_data);
+    }
+    final fileMap = <String, Uint8List>{dirName: ps2Data};
+    // Use preserved side files from the original PS2 save, or fall back to the
+    // icons embedded in resources.zip for Xbox→PS2 conversions.
+    final sideFiles = _ps2SideFiles ?? _embeddedPs2Icons;
+    if (sideFiles != null) fileMap.addAll(sideFiles);
     return Ps2Save.fromFiles(dirName, fileMap).toBytes(format: format);
+  }
+
+  /// Converts a 456-byte Xbox franchise prefix to a 460-byte PS2 franchise prefix.
+  ///
+  /// Analysis of multiple Xbox and PS2 base franchise saves revealed:
+  ///   • The PS2 format inserts 4 bytes [0x00, 0x00, 0x00, 0x01] at offset 0x21.
+  ///   • Five additional bytes are platform-specific constants that differ between
+  ///     Xbox and PS2 (confirmed identical across all sampled Xbox saves).
+  ///
+  /// All other bytes (game state: standings, floats, etc.) are carried over
+  /// unchanged from the Xbox save, preserving franchise progress.
+  static Uint8List _convertXboxFranchisePrefix(Uint8List xboxPfx) {
+    // The 4 bytes inserted by PS2 at this position in the prefix.
+    const int        kInsertPos    = 0x21;
+    const List<int>  kInsertBytes  = [0x00, 0x00, 0x00, 0x01];
+    // Platform-specific byte patches (offset in the 460-byte PS2 result → PS2 value).
+    // Offsets ≥ kInsertPos+4 are already shifted by the insertion above.
+    const Map<int, int> kPs2Patches = {
+      0x014: 0x02,   // platform id/version: Xbox=0x01 → PS2=0x02
+      0x038: 0x04,   // Xbox=0x05 → PS2=0x04
+      0x10a: 0x70,   // Xbox=0x96 → PS2=0x70
+      0x124: 0x01,   // Xbox=0x00 → PS2=0x01
+      0x16f: 0xb8,   // Xbox=0x98 → PS2=0xb8
+    };
+
+    final out = Uint8List(460)
+      ..setRange(0,              kInsertPos,     xboxPfx, 0)
+      ..setRange(kInsertPos,     kInsertPos + 4, kInsertBytes)
+      ..setRange(kInsertPos + 4, 460,            xboxPfx, kInsertPos);
+    for (final e in kPs2Patches.entries) {
+      out[e.key] = e.value;
+    }
+    return out;
+  }
+
+  /// Extracts non-roster files (icon.sys, VIEW.ICO, …) from the embedded
+  /// resources archive and returns them as a side-file map.  Returns null if
+  /// no such files are present.
+  static final Map<String, Uint8List>? _embeddedPs2Icons = _loadEmbeddedPs2Icons();
+
+  static Map<String, Uint8List>? _loadEmbeddedPs2Icons() {
+    final archive = ZipDecoder().decodeBytes(kResources);
+    final icons = <String, Uint8List>{};
+    for (final f in archive) {
+      if (!f.isFile) continue;
+      final name = f.name.contains('/') ? f.name.split('/').last : f.name;
+      if (name.isEmpty || name.toLowerCase().endsWith('.dat')) continue;
+      icons[name] = Uint8List.fromList(f.content as List<int>);
+    }
+    return icons.isEmpty ? null : icons;
   }
 
   /// The default PS2 directory/file name when the save was not loaded from
