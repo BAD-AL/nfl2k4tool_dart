@@ -225,7 +225,7 @@ class InputParser {
       }
 
       // ── YEAR= / Week header → schedule mode ──────────────────────────────
-      if ( line.toLowerCase().startsWith('week') ) {
+      if ( line.toLowerCase().startsWith('week') || line.toLowerCase().startsWith('year') ) {
         mode = _Mode.schedule;
       }
 
@@ -417,7 +417,11 @@ class InputParser {
           player!.setAttribute(fieldName, value);
           anySet = true;
         } catch (e) {
-          errors.add('${player!.fullName}: failed to set $fieldName="$value": $e;');
+          if(player != null){
+            errors.add('${player!.fullName}: failed to set $fieldName="$value": $e;');
+          } else {
+            errors.add("Error with line: '$line'");
+          }
         }
       }
       if (anySet) updated++;
